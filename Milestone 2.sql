@@ -1,8 +1,8 @@
 --2.1.1 create database
 create database Advising_Team_127;
-Go;
+Go
 use Advising_Team_127;
-Go;
+Go
 
 --2.1.2 procedure to create tables
 create proc CreateAllTables
@@ -169,7 +169,7 @@ create table Installment(
 	primary key(payment_id , deadline),
 	foreign key(payment_id) references Payment(payment_id)
 );
-GO;
+GO
 
 --2.1.3 procedure to drop tables
 create proc DropAllTables
@@ -192,7 +192,7 @@ drop table if Exists Course;
 drop table if Exists Instructor;
 drop table if Exists Semester;
 drop table if Exists Advisor;
-GO;
+GO
 
 --2.1.4 procedure to clear tables
 create proc clearAllTables
@@ -215,13 +215,13 @@ truncate table Instructor;
 truncate table Semester;
 truncate table Advisor;
 truncate table Payment;
-GO;
+GO
 
 Exec CreateAllTables;
-GO;
+GO
 
 Exec DropAllTables;
-GO;
+GO
 
 Exec clearAllTables;
-GO;
+GO
