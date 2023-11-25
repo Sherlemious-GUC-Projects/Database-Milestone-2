@@ -225,5 +225,3 @@ GO
 
 Exec clearAllTables;
 GO
-
--- Sherlemious
