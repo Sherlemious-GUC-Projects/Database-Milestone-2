@@ -197,24 +197,24 @@ GO
 --2.1.4 procedure to clear tables
 create proc clearAllTables
 as
-truncate table Student_Phone;
-truncate table preqCourse_course;
-truncate table Instructor_Course;
-truncate table Student_Instructor_Course_Take;
-truncate table Course_Semester;
-truncate table GradPlan_Course;
-truncate table Exam_student;
-truncate table Installment;
-truncate table Slot;
-truncate table Graduation_Plan;
-truncate table Request;
-truncate table MakeUpExam;
-truncate table Student;
-truncate table Course;
-truncate table Instructor;
-truncate table Semester;
-truncate table Advisor;
-truncate table Payment;
+delete from Student_Phone;
+delete from preqCourse_course;
+delete from Instructor_Course;
+delete from Student_Instructor_Course_Take;
+delete from Course_Semester;
+delete from GradPlan_Course;
+delete from Exam_student;
+delete from Installment;
+delete from Slot;
+delete from Graduation_Plan;
+delete from Request;
+delete from MakeUpExam;
+delete from Student;
+delete from Course;
+delete from Instructor;
+delete from Semester;
+delete from Advisor;
+delete from Payment;
 GO
 
 Exec CreateAllTables;
