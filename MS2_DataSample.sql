@@ -228,6 +228,10 @@ INSERT INTO Installment (payment_id, start_date, amount, status, deadline) VALUE
 ( 9,'2023-12-30', 72, 'notPaid','2024-01-30'),
 ( 10,'2023-11-30', 58, 'Paid','2023-12-30');
 
+
+--create the tables:
+exec CreateAllTables
+
 --test all the views
 select * from dbo.Advisors_Graduation_Plan
 select * from dbo.Courses_Slots_Instructor
@@ -275,8 +279,11 @@ drop view dbo.view_Students
 drop view dbo.Student_Payment
 --test all the procdedure from A to OO
 declare @A int
+declare @C int
 exec Procedures_StudentRegistration 'ahmed', 'mohamed', '123', 'eng', '', 'cs', 1, @A output
+exec Procedures_StudentRegistration 'shirley', 'mohamed', '123', 'eng', '', 'cs', 1, @C output
 print @A
+print @C
 select * from Student
 
 declare @B int
