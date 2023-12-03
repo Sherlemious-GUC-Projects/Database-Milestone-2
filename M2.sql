@@ -30,7 +30,7 @@ create table Student
 	password varchar(40),
 	financial_status bit,
 	semester int,
-	aqcuired_hours int,
+	acquired_hours int,
 	assigned_hours int,
 	advisor_id int
 	foreign key(advisor_id) references Advisor(advisor_id)
