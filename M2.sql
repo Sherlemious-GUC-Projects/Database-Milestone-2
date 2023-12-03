@@ -4,7 +4,6 @@
 
 --2.1.1 create database
 create database Advising_Team_127;
-create database test1;
 Go
 use Advising_Team_127;
 Go
