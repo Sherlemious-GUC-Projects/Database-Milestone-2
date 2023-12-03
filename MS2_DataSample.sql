@@ -145,7 +145,7 @@ INSERT INTO Slot (day, time, location, course_id, instructor_id) VALUES
 
 
 -- Adding 10 records to the Graduation_Plan table
-INSERT INTO Graduation_Plan (semester_code, semester_credit_hours, expected_grad_semester, student_id, advisor_id) VALUES
+INSERT INTO Graduation_Plan (semester_code, semester_credit_hours, expected_grad_date, student_id, advisor_id) VALUES
 ( 'W23', 90,    '2024-01-31' ,   1, 1),
 ( 'S23', 85,    '2025-01-31'  ,     2, 2),
 ( 'S23R1', 75,  '2025-06-30' ,  3, 3),
@@ -224,7 +224,7 @@ INSERT INTO Payment (amount, startdate,n_installments, status, fund_percentage, 
 
 
 -- Adding 10 records to the Installment table
-INSERT INTO Installment (payment_id, startdate, amount, status, deadline) VALUES
+INSERT INTO Installment (payment_id, start_date, amount, status, deadline) VALUES
 (1, '2023-11-22', 50, 'notPaid','2023-12-22'),
 (2, '2023-11-23', 70, 'notPaid','2023-12-23'),
 (3, '2023-12-24', 60, 'notPaid','2024-01-24'),

@@ -51,10 +51,10 @@ create table Course(
 );
 create table preqCourse_course(
 	course_id int,
-	prequisite_Course_id int,
-	primary key(course_id, prequisite_Course_id),
+	prerequisite_Course_id int,
+	primary key(course_id, prerequisite_Course_id),
 	foreign key(course_id) references Course(course_id),
-	foreign key(prequisite_Course_id) references Course(course_id),
+	foreign key(prerequisite_Course_id) references Course(course_id),
 );
 create table Instructor
 (
@@ -107,12 +107,12 @@ create table Slot(
 );
 create table Graduation_Plan(
 	plan_id int identity(0,1),
-	semster_code varchar(40),
+	semester_code varchar(40),
 	semester_credit_hours int,
 	expected_grad_date date,
 	advisor_id int,
 	student_id int,
-	primary key(plan_id, semster_code),
+	primary key(plan_id, semester_code),
 	foreign key(advisor_id) references Advisor(advisor_id),
 	foreign key(student_id) references Student(student_id),
 );
@@ -157,12 +157,12 @@ create table Payment(
 	deadline datetime,
 	n_installments int,
 	status varchar(40) default 'notPaid',
-	fund_percent decimal(5,2),
+	fund_percentage decimal(5,2),
 	start_date datetime,
 	student_id int,
-	semster_code varchar(40),
+	semester_code varchar(40),
 	foreign key(student_id) references Student(student_id),
-	foreign key(semster_code) references Semester(semester_code)
+	foreign key(semester_code) references Semester(semester_code)
 );
 create table Installment(
 	payment_id int,
@@ -251,7 +251,7 @@ GO
 CREATE VIEW view_Course_prerequisites AS
 SELECT
     C.*,
-    P.prequisite_Course_id AS prerequisite_course_id
+    P.prerequisite_Course_id AS prerequisite_course_id
 FROM Course C
 LEFT JOIN preqCourse_course P ON C.course_id = P.course_id;
 GO
@@ -711,17 +711,17 @@ end
 -- CC) View available courses in the current semester
 -- i. Type: TVFunction
 -- ii. Name: FN_SemsterAvailableCourses
--- iii. Input: semster_code varchar (40)
+-- iii. Input: semester_code varchar (40)
 -- iv. Output: Table of available courses within the semester
 
 GO
 create function FN_SemsterAvailableCourses
-	(@semster_code varchar(40))
+	(@semester_code varchar(40))
 returns table
 as
 return
 (
-	select * from Course_Semester where semster_code = @semster_code
+	select * from Course_Semester where semester_code = @semester_code
 )
 GO
 
@@ -782,7 +782,7 @@ return
 	where GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and GradPlan_Course.course_id = Course_Semester.course_id
-	and GradPlan_Course.semster_code = Course_Semester.semster_code
+	and GradPlan_Course.semester_code = Course_Semester.semester_code
 	and Student.student_id = @student_ID
 )
 GO
@@ -892,11 +892,11 @@ as
 begin
 	select * from Course_Semester, Student, Graduation_Plan, GradPlan_Course
 	where Course_Semester.course_id = GradPlan_Course.course_id
-	and Course_Semester.semster_code = GradPlan_Course.semster_code
+	and Course_Semester.semester_code = GradPlan_Course.semester_code
 	and GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and Student.student_id = @StudentID
-	and Course_Semester.semster_code = @CurrentSemester
+	and Course_Semester.semester_code = @CurrentSemester
 	and Course_Semester.type = 'required'
 end
 
@@ -914,11 +914,11 @@ as
 begin
 	select * from Course_Semester, Student, Graduation_Plan, GradPlan_Course
 	where Course_Semester.course_id = GradPlan_Course.course_id
-	and Course_Semester.semster_code = GradPlan_Course.semster_code
+	and Course_Semester.semester_code = GradPlan_Course.semester_code
 	and GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and Student.student_id = @StudentID
-	and Course_Semester.semster_code = @CurrentSemester
+	and Course_Semester.semester_code = @CurrentSemester
 	and Course_Semester.type = 'optional'
 end
 GO
@@ -936,14 +936,14 @@ as
 begin
 	select * from Course_Semester, Student, Graduation_Plan, GradPlan_Course
 	where Course_Semester.course_id = GradPlan_Course.course_id
-	and Course_Semester.semster_code = GradPlan_Course.semster_code
+	and Course_Semester.semester_code = GradPlan_Course.semester_code
 	and GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and Student.student_id = @StudentID
 	and Course_Semester.type = 'required'
-	and Course_Semester.semster_code not in (select Course_Semester.semster_code from Course_Semester, Student, Graduation_Plan, GradPlan_Course
+	and Course_Semester.semester_code not in (select Course_Semester.semester_code from Course_Semester, Student, Graduation_Plan, GradPlan_Course
 	where Course_Semester.course_id = GradPlan_Course.course_id
-	and Course_Semester.semster_code = GradPlan_Course.semster_code
+	and Course_Semester.semester_code = GradPlan_Course.semester_code
 	and GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and Student.student_id = @StudentID
