@@ -10,8 +10,6 @@ INSERT INTO Course(name, major, is_offered, credit_hours, semester)  VALUES
 ( 'Computer Architecture', 'MET', 0, 3, 6),
 ( 'Computer Organization', 'Engineering', 1, 4, 4),
 ( 'Database2', 'MET', 1, 3, 6);
-
-
 -- Adding 10 records to the Instructor table
 INSERT INTO Instructor(name, email, faculty, office) VALUES
 ( 'Professor Smith', 'prof.smith@example.com', 'MET', 'Office A'),
@@ -24,7 +22,6 @@ INSERT INTO Instructor(name, email, faculty, office) VALUES
 ( 'Professor Miller', 'prof.miller@example.com', 'Mechatronics', 'Office H'),
 ( 'Professor Davis', 'prof.davis@example.com', 'IET', 'Office I'),
 ( 'Professor Moore', 'prof.moore@example.com', 'IET', 'Office J');
-
 -- Adding 10 records to the Semester table
 INSERT INTO Semester(semester_code, start_date, end_date) VALUES
 ('W23', '2023-10-01', '2024-01-31'),
@@ -35,7 +32,6 @@ INSERT INTO Semester(semester_code, start_date, end_date) VALUES
 ('S24', '2024-03-01', '2024-06-30'),
 ('S24R1', '2024-07-01', '2024-07-31'),
 ('S24R2', '2024-08-01', '2024-08-31')
-
 -- Adding 10 records to the Advisor table
 INSERT INTO Advisor(name, email, office, password) VALUES
 ( 'Dr. Anderson', 'anderson@example.com', 'Office A', 'password1'),
@@ -48,8 +44,8 @@ INSERT INTO Advisor(name, email, office, password) VALUES
 ( 'Prof. Harris', 'harris@example.com', 'Office H', 'password8'),
 ( 'Dr. Irving', 'irving@example.com', 'Office I', 'password9'),
 ( 'Prof. Johnson', 'johnson@example.com', 'Office J', 'password10');
-
 -- Adding 10 records to the Student table
+
 INSERT INTO Student (f_name, l_name, GPA, faculty, email, major, password, financial_status, semester, acquired_hours, assigned_hours, advisor_id)   VALUES 
 ( 'John', 'Doe', 3.5, 'Engineering', 'john.doe@example.com', 'CS', 'password123', 1, 1, 90, 30, 1),
 ( 'Jane', 'Smith', 3.8, 'Engineering', 'jane.smith@example.com', 'CS', 'password456', 1, 2, 85, 34, 2),
@@ -61,8 +57,6 @@ INSERT INTO Student (f_name, l_name, GPA, faculty, email, major, password, finan
 ( 'Sophie', 'Clark', 3.6, 'Engineering', 'sophie.clark@example.com', 'Mechatronics', 'passwordmno', 1, 8, 92, 34, 8),
 ( 'Daniel', 'Wilson', 3.3, 'Engineering', 'daniel.wilson@example.com', 'DMET', 'passwordpqr', 1, 9, 87, 34, 9),
 ( 'Olivia', 'Anderson', 3.7, 'Engineeringe', 'olivia.anderson@example.com', 'Mechatronics', 'passwordstu', 0, 10, 89, 34, 10);
-
-
 -- Adding 10 records to the Student_Phone table
 INSERT INTO Student_Phone(student_id, phone_number) VALUES
 (4, '456-789-0123'),
@@ -72,8 +66,6 @@ INSERT INTO Student_Phone(student_id, phone_number) VALUES
 (8, '890-123-4567'),
 (9, '901-234-5678'),
 (10, '012-345-6789');
-
-
 -- Adding 10 records to the PreqCourse_course table
 INSERT INTO PreqCourse_course(prerequisite_course_id, course_id) VALUES
 (2, 7),
@@ -235,3 +227,140 @@ INSERT INTO Installment (payment_id, start_date, amount, status, deadline) VALUE
 ( 7,'2023-11-28', 62, 'Paid','2023-12-28'),
 ( 9,'2023-12-30', 72, 'notPaid','2024-01-30'),
 ( 10,'2023-11-30', 58, 'Paid','2023-12-30');
+
+--test all the views
+select * from dbo.Advisors_Graduation_Plan
+select * from dbo.Courses_Slots_Instructor
+select * from dbo.Courses_MakeupExams
+select * from dbo.Instructors_AssignedCourses
+select * from dbo.Semster_offered_Courses
+select * from dbo.Students_Courses_transcript
+select * from dbo.view_Course_prerequisites
+select * from dbo.view_Students
+select * from Student
+select * from dbo.Student_Payment
+
+--select * from all tables
+select * from Advisor
+select * from Course
+select * from Course_Semester
+select * from Exam_Student
+select * from GradPlan_Course
+select * from Graduation_Plan
+select * from Instructor
+select * from Instructor_Course
+select * from Installment
+select * from MakeUp_Exam
+select * from Payment
+	
+select * from PreqCourse_course
+select * from Request
+select * from Semester
+	
+select * from Slot
+select * from Student
+select * from Student_Instructor_Course_Take
+select * from Student_Phone
+select * from Student_Payment
+
+---drop all views
+drop view dbo.Advisors_Graduation_Plan
+drop view dbo.Courses_Slots_Instructor
+drop view dbo.Courses_MakeupExams
+drop view dbo.Instructors_AssignedCourses
+drop view dbo.Semster_offered_Courses
+drop view dbo.Students_Courses_transcript
+drop view dbo.view_Course_prerequisites
+drop view dbo.view_Students
+drop view dbo.Student_Payment
+--test all the procdedure from A to OO
+declare @A int
+exec Procedures_StudentRegistration 'ahmed', 'mohamed', '123', 'eng', '', 'cs', 1, @A output
+print @A
+select * from Student
+
+declare @B int
+exec Procedures_AdminRegistration 'ahmed', '123', '', '',  @B output
+print @B
+select * from Advisor
+
+exec Procedures_AdminListStudents
+
+exec Procedures_AdminListAdvisors
+
+exec AdminListStudentsWithAdvisors
+
+exec AdminAddingSemester '2020-01-01', '2020-01-01', S19
+select * from Semester
+
+exec Procedures_AdminAddingCourse 'MET', 5, 3, 'cs', 1
+select * from Course
+
+exec Procedures_AdminLinkInstructor 1, 1, 1
+select * from Instructor_Course
+
+exec Procedures_AdminLinkStudent 1, 1, 1, '2020-01-01'
+exec Procedures_AdminLinkStudentToAdvisor 1, 1
+exec Procedures_AdminAddExam 'cs', '2020-01-01', 1
+exec all_Pending_Requests
+exec Procedures_AdvisorAddCourseGP 1, '2020-01-01', 'cs'
+exec Procedures_AdvisorUpdateGP '2020-01-01', 1
+exec Procedures_AdvisorDeleteFromGP 1, '2020-01-01', 1
+exec FN_Advisors_Requests 1
+exec Procedures_AdvisorApproveRejectCHRequest 1, '2020-01-01'
+exec Procedures_AdvisorViewAssignedStudents 1, 'cs'
+exec Procedures_AdvisorApproveRejectCourseRequest 1, '2020-01-01'
+exec Procedures_AdvisorViewPendingRequests 1
+exec FN_StudentLogin 1, '123'
+exec Procedures_StudentaddMobile 1, '123'
+exec FN_SemsterAvailableCourses '2020-01-01'
+exec Procedures_StudentSendingCourseRequest 1, 1, 'cs', 'cs'
+exec Procedures_StudentSendingCHRequest 1, 1, 'cs', 'cs'
+exec FN_StudentViewGP 1
+exec FN_StudentUpcoming_installment 1
+exec FN_StudentViewSlot 1, 1
+exec Procedures_StudentRegisterFirstMakeup 1, 1, '2020-01-01'
+exec FN_StudentCheckSMEligiability 1, 1
+exec Procedures_StudentRegisterSecondMakeup 1, 1, '2020-01-01'
+exec Procedures_ViewRequiredCourses 1, '2020-01-01'
+exec Procedures_ViewOptionalCourse 1, '2020-01-01'
+exec Procedures_ViewMS 1
+exec Procedures_ChooseInstructor 1, 1, 1, '2020-01-01'
+GO
+
+--drop all the procedure from A to OO
+drop proc Procedures_StudentRegistration
+drop proc Procedures_AdminListStudents
+drop proc Procedures_AdminListAdvisors
+drop proc AdminListStudentsWithAdvisors
+drop proc Procedures_AdminAddingSemester
+drop proc Procedures_AdminAddingCourse
+drop proc Procedures_AdminLinkInstructor
+drop proc Procedures_AdminLinkStudent
+drop proc Procedures_AdminLinkStudentToAdvisor
+drop proc Procedures_AdminAddExam
+drop proc all_Pending_Requests
+drop proc Procedures_AdvisorAddCourseGP
+drop proc Procedures_AdvisorUpdateGP
+drop proc Procedures_AdvisorDeleteFromGP
+drop proc FN_Advisors_Requests
+drop proc Procedures_AdvisorApproveRejectCHRequest
+drop proc Procedures_AdvisorViewAssignedStudents
+drop proc Procedures_AdvisorApproveRejectCourseRequest
+drop proc Procedures_AdvisorViewPendingRequests
+drop proc FN_StudentLogin
+drop proc Procedures_StudentaddMobile
+drop proc FN_SemsterAvailableCourses
+drop proc Procedures_StudentSendingCourseRequest
+drop proc Procedures_StudentSendingCHRequest
+drop proc FN_StudentViewGP
+drop proc FN_StudentUpcoming_installment
+drop proc FN_StudentViewSlot
+drop proc Procedures_StudentRegisterFirstMakeup
+drop proc FN_StudentCheckSMEligiability
+drop proc Procedures_StudentRegisterSecondMakeup
+drop proc Procedures_ViewRequiredCourses
+drop proc Procedures_ViewOptionalCourse
+drop proc Procedures_ViewMS
+drop proc Procedures_ChooseInstructor
+GO
