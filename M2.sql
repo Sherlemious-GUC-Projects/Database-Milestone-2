@@ -4,6 +4,7 @@
 
 --2.1.1 create database
 create database Advising_Team_127;
+create database test1;
 Go
 use Advising_Team_127;
 Go
@@ -470,14 +471,99 @@ As
 	Values(@TYPE, @date, @courseID)
 GO
 -- l)
+create procedure  Procedures_AdminIssueInstallment
+	@payment_ID int
+	as
+	declare @amount int
+	select @amount = amount from Payment where payment_id = @payment_ID
+
+
+
+	declare @n_installments int
+	select @n_installments = n_installments from Payment where payment_id = @payment_ID
+
+	declare @start_date datetime
+	select @start_date = start_date from Payment where payment_id = @payment_ID
+
+	declare @deadline datetime
+	declare @counter int = 0
+	while @counter < @n_installments
+	Begin
+			set @deadline = dateadd(month, 1, @deadline)	
+	insert into Installment(payment_id, deadline, amount,start_date)	
+		values(@payment_ID, @deadline, @amount/@n_installments,@start_date)
+		set @counter = @counter + 1
+		set @start_date = dateadd(month, 1, @start_date)
+	End
+	go
+-- M)
+	create proc Procedures_AdminDeleteCourse
+	@courseID int
+	as
+	delete from Course where course_id = @courseID
+	delete from Course_Semester where course_id = @courseID
+
+	go
+-- N)
+	create proc Procedure_AdminUpdateStudentStatus
+	@studentID int
+	as
+	declare @payment_id int
+	select @payment_id = payment_id from Payment where student_id = @studentID
+
+	declare @current_date datetime
+	select @current_date = getdate()
+
+	if(exists (select * from Installment where payment_id = @payment_id and deadline < @current_date and status = 'notPaid'))
+	begin
+	update Student set Status = 0 where student_id = @studentID
+	end
+	else
+	begin
+	update Student set Status = 1 where student_id = @studentID
+	end
+	go
 -- O)
 
 Create Procedure all_Pending_Requests
 As
-	Select * From Request
-	Where Request.status = 'pending'
-GO;
+	Select R.*,S.f_name as Student_First_name,S.l_name as Student_last_name, A.name as Advisor_name  From Request R inner join Student S on R.student_id = S.student_id inner join Advisor A on R.advisor_id = A.advisor_id
+	where R.status = 'pending'
+GO
+-- P)
+create proc Procedures_AdminDeleteSlots
+@current_semester_code varchar(40)
+as
 
+delete from	Slot where course_id in ((select course_id from Slot) Except (select course_id from Course_Semester where semester_code = @current_semester_code))
+
+go
+
+-- Q)
+create function FN_AdvisorLogin
+	(@advisor_id int,@password varchar(40))
+	returns bit
+	as
+	begin
+	declare @success_bit bit
+	if exists (select * from Advisor where advisor_id = @advisor_id and password = @password)
+	set @success_bit = 1
+	else
+	set @success_bit = 0
+	return @success_bit
+	end
+	go
+-- R)
+create proc Procedures_AdvisorCreateGP
+	@semester_code varchar(40),
+	@expected_grad_date date,
+	@sem_credit_hours int,
+	@advisor_id int,
+	@student_id int
+	as
+	insert into Graduation_Plan(semester_code, expected_grad_date, semester_credit_hours, advisor_id, student_id)
+	values(@semester_code, @expected_grad_date, @sem_credit_hours, @advisor_id, @student_id)
+	go
 -- S) Add course inside certain plan of specific student
 -- i. Type: Stored Procedure
 -- ii. Name: Procedures_AdvisorAddCourseGP
@@ -491,10 +577,12 @@ create procedure Procedures_AdvisorAddCourseGP
 	@course_name varchar(40)
 as
 	declare @course_id int
+	declare @plan_id int
+	select @plan_id = plan_id from Graduation_Plan where student_id = @student_id and semester_code = @semester_code
 	select @course_id = course_id from Course where name = @course_name
-	insert into Student_Graduation_Plan(student_id, semester_code, course_id)
-	values(@student_id, @semester_code, @course_id)
-GO;
+	insert into GradPlan_Course(plan_id, semester_code, course_id)
+	values(@plan_id, @semester_code, @course_id)
+GO
 
 -- T) Update expected graduation date in a certain graduation plan
 -- i. Type: Stored Procedure
@@ -509,7 +597,7 @@ as
 	update Graduation_Plan
 	set expected_grad_date = @expected_grad_date
 	where student_id = @student_id
-GO;
+GO
 
 -- U) Delete course from certain graduation plan in certain semester
 -- i. Type: stored procedure
@@ -523,9 +611,11 @@ create procedure Procedures_AdvisorDeleteFromGP
 	@semester_code varchar(40),
 	@course_id int
 as
-	delete from Student_Graduation_Plan
-	where student_id = @student_id and semester_code = @semester_code and course_id = @course_id
-GO;
+	declare @plan_id int
+	select @plan_id = plan_id from Graduation_Plan where student_id = @student_id and semester_code = @semester_code
+
+	delete from GradPlan_Course where @plan_id = plan_id and @semester_code = semester_code and @course_id = course_id
+GO
 
 -- V) Retrieve requests for certain advisor
 -- i. Type: TVFunction
@@ -550,31 +640,61 @@ return
 -- iv. Output: nothing
 
 GO
-create procedure Procedures_AdvisorApproveRejectCHRequest
-	@request_id int,
-	@current_semester_code varchar(40)
+create proc Procedures_AdvisorApproveRejectCHRequest
+@request_id int,
+@Semester_code varchar(40)
 as
-	declare @student_id int
-	select @student_id = student_id from Request where request_id = @request_id
-	declare @credit_hours int
-	select @credit_hours = credit_hours from Request where request_id = @request_id
-	declare @current_credit_hours int
-	select @current_credit_hours = credit_hours from Student where student_id = @student_id
-	declare @current_semester_code varchar(40)
-	select @current_semester_code = semester_code from Student where student_id = @student_id
-	if @current_semester_code = @current_semester_code
-	begin
-		if @credit_hours > @current_credit_hours
-		begin
-			update Student
-			set credit_hours = @credit_hours
-			where student_id = @student_id
-		end
-	end
-	update Request
-	set status = 'approved'
-	where request_id = @request_id
-GO;
+declare @student_id int;
+declare @credit_hours int;
+declare @assigned_hours int;
+declare @gpa decimal(3,2);
+declare @payment_amount int;
+declare @payment_id int;
+declare @installment_deadline date;
+declare @installment_ammount int;
+select @student_id = student_id from Request where request_id = @request_id;
+select @credit_hours = credit_hours from Request where request_id = @request_id;
+select @gpa = gpa from Student where student_id = @student_id;
+select @payment_id = payment_id from Payment where student_id = @student_id and semster_code = @Semester_code
+select @payment_amount = amount from Payment where student_id = @student_id and semester_code = @semester_code;
+select @assigned_hours = assigned_hours from Student where student_id = @student_id;
+select @installment_deadline = min(deadline) from Installment where status = 'notPaid' and payment_id = @payment_id 
+select @installment_ammount = amount from Installment where payment_id = @payment_id and @installment_deadline = deadline;
+if(@credit_hours is null)
+print ' this in not a credit hour request';
+else
+begin
+if(@gpa > 3.7)
+begin
+update Request set status = 'rejected' where request_id = @request_id;
+print 'this student is on probation';
+end
+else
+begin
+if(@credit_hours > 3 or @credit_hours < 0)
+begin
+update Request set status = 'rejected' where request_id = @request_id;
+print 'credit_hours that can be added should be up to 3'
+end
+else 
+begin
+if(@assigned_hours + @credit_hours > 34)
+begin
+update Request set status = 'rejected' where request_id = @request_id;
+print 'assigned hours would pass the 34 hours threshold'
+end
+else
+begin
+update Request set status = 'approved' where request_id = @request_id;
+update Student set assigned_hours = @assigned_hours + @credit_hours where student_id = @student_id; 
+update Payment set amount = @payment_amount + 1000 where @student_id = student_id and @Semester_code = semster_code;
+update Installment set amount = @installment_ammount + 1000 where payment_id = @payment_id and deadline = @installment_deadline;
+print 'request approved succesfully';
+end
+end
+end
+end
+GO
 
 -- X) View all students assigned to specific advisor from a certain major along
 -- with their taken courses
@@ -594,7 +714,7 @@ as
 	Student.major = @major and
 	Student.advisor_id = @advisor_id and
 	Course.course_id = Student_Instructor_Course_Take.course_id
-GO;
+GO
 
 -- Y) Approve/Reject courses request
 -- After approving/rejecting the request, the status of the request should be
@@ -606,53 +726,56 @@ GO;
 -- ii. Name:Procedures_AdvisorApproveRejectCourseRequest
 -- iii. Input: RequestID int, current_semester_code varchar(40)
 -- iv. Output: nothing
-
-create procedure Procedures_AdvisorApproveRejectCourseRequest
-	@request_id int,
-	@current_semester_code varchar(40)
+create proc Procedures_AdvisorApproveRejectCourseRequest
+@request_id int,
+@current_semester_code varchar(40)
 as
-	declare @student_id int
-	select @student_id = student_id from Request where request_id = @request_id
-	declare @course_id int
-	select @course_id = course_id from Request where request_id = @request_id
-	declare @current_credit_hours int
-	select @current_credit_hours = credit_hours from Student where student_id = @student_id
-	declare @current_semester_code varchar(40)
-	select @current_semester_code = semester_code from Student where student_id = @student_id
-	declare @course_credit_hours int
-	select @course_credit_hours = credit_hours from Course where course_id = @course_id
-	declare @course_prerequisite_id int
-	select @course_prerequisite_id = prerequisite_id from Course where course_id = @course_id
-	declare @course_prerequisite_credit_hours int
-	select @course_prerequisite_credit_hours = credit_hours from Course where course_id = @course_prerequisite_id
-	if @current_semester_code = @current_semester_code
-	begin
-		if @current_credit_hours + @course_credit_hours <= 18
-		begin
-			if @course_prerequisite_id is null
-			begin
-				update Student
-				set credit_hours = @current_credit_hours + @course_credit_hours
-				where student_id = @student_id
-				update Request
-				set status = 'approved'
-				where request_id = @request_id
-			end
-			else
-			begin
-				if exists (select * from Student_Instructor_Course_Take where student_id = @student_id and course_id = @course_prerequisite_id)
-				begin
-					update Student
-					set credit_hours = @current_credit_hours + @course_credit_hours
-					where student_id = @student_id
-					update Request
-					set status = 'approved'
-					where request_id = @request_id
-				end
-			end
-		end
-	end
-GO;
+declare @assigned_hours int;
+declare @coure_id varchar(40);
+declare @credit_hours int;
+declare @student_credithours_sum int;
+declare @student_id int;
+select @student_id = student_id from Request where request_id = @request_id;
+select @assigned_hours = assigned_hours from Student where student_id = @student_id;
+select @coure_id = course_id from Request where request_id = @request_id;
+select @credit_hours = credit_hours from Course where course_id = @coure_id;
+select @student_credithours_sum = sum(C.credit_hours) from Student_Instructor_Course_Take sc inner join Course C on C.course_id = sc.course_id  where @student_id = sc.student_id and sc.semester_code = @current_semester_code; 
+if(@coure_id is null)
+begin
+print 'this is not a course request';
+end
+else
+begin
+if( Exists((select prequisite_Course_id from preqCourse_course where course_id = @coure_id) except (select course_id from Student_Instructor_Course_Take 
+where student_id = @student_id and not (grade is null or grade ='F' or grade = 'FF' or grade = 'FA') and semester_code <> @current_semester_code)))
+begin
+update Request set status = 'rejected' where @request_id = request_id
+print 'student still needs to take all prequisite courses';
+end
+else
+begin
+if(@assigned_hours < @student_credithours_sum + @credit_hours)
+begin
+print 'student does not have enough assigned hours';
+update Request set status = 'rejected' where request_id = @request_id;
+end
+else
+begin
+if(not exists (select course_id from Course_Semester where course_id = @coure_id and semester_code = @current_semester_code))
+begin
+print ' course is not offered in the current semester'
+update Request set status = 'rejected' where request_id = @request_id;
+end
+else
+begin
+update Request set status = 'approved' where request_id = @request_id;
+insert into Student_Instructor_Course_Take (student_id,course_id,semester_code) values(@student_id,@coure_id,@current_semester_code)
+print 'request approved succesfuully';
+end
+end
+end
+end
+Go
 
 -- Z) View pending requests of specific advisor students
 -- i. Type: Stored Procedure
@@ -673,14 +796,18 @@ GO;
 -- iii. Input: Student ID int, password varchar (40)
 -- iv. Output: Success bit
 
-create proc FN_StudentLogin
-	@StudentID int,
-	@password varchar(40)
+create Function FN_StudentLogin
+	(@StudentID int,
+	@password varchar(40))
+	returns bit
 as
 begin
+	declare @success_bit bit
 	if exists (select * from Student where StudentID = @StudentID and password = @password)
-		return 1
-	return 0
+		set @success_bit = 1
+	else
+		set @success_bit = 0
+	return @succes_bit
 end
 
 -- BB) Add Student mobile number(s)
@@ -712,7 +839,7 @@ returns table
 as
 return
 (
-	select * from Course_Semester where semester_code = @semester_code
+	select C.* from Course C inner join Course_Semester CS on C.course_id =cs.course_id where semester_code = @semester_code
 )
 GO
 
@@ -730,8 +857,11 @@ create proc Procedures_StudentSendingCourseRequest
 	@comment varchar(40)
 as
 begin
+	declare @advisor_id int
+	select @advisor_id = advisor_id from Student where S.student_id = @StudentID
 	if exists (select * from Student where StudentID = @StudentID)
-		insert into Request values (@type, @comment, 'pending', null, @StudentID, null, @courseID)
+		insert into Request (type, comment, credit_hours, student_id, advisor_id, course_id)
+		values (@type, @comment, null, @StudentID, @advisor_id, @courseID)
 end
 
 -- EE) Sending extra credit hours’ request
@@ -749,8 +879,11 @@ create proc Procedures_StudentSendingCHRequest
 	@comment varchar(40)
 as
 begin
+    declare @advisor_id int
+	select @advisor_id = advisor_id from Student where S.student_id = @StudentID
 	if exists (select * from Student where StudentID = @StudentID)
-		insert into Request values (@type, @comment, 'pending', null, @StudentID, @credit_hours, null)
+		insert into Request	(type, comment, credit_hours, student_id, advisor_id, course_id)
+		values (@type, @comment, @credit_hours, @StudentID,@advisor_id, null)
 end
 GO
 
@@ -769,11 +902,14 @@ returns table
 as
 return
 (
-	select * from GradPlan_Course, Graduation_Plan, Course_Semester, Student
-	where GradPlan_Course.graduation_plan_id = Graduation_Plan.graduation_plan_id
+	select S.student_id,concat(S.f_name,S.l_name) as Student_name, Gp.plan_id as Graduation_plan_Id,C.course_id as Course_id,
+	C.name as course_name ,CS.semester_code as Semester_code, GP.expected_grad_date as expected_graduation_date ,
+	Gp.semester_credit_hours, S.advisor_id  from GradPlan_Course GC, Graduation_Plan GP, Student_Instructor_Course_Take CS, Student S, Course C
+	where GradPlan_Course.plan_id = Graduation_Plan.plan_id
 	and Graduation_Plan.student_id = Student.student_id
 	and GradPlan_Course.course_id = Course_Semester.course_id
-	and GradPlan_Course.semester_code = Course_Semester.semester_code
+	and GradPlan_Course.semester_code = Student_Instructor_Course_Take.semester_code
+	and Student_Instructor_Course_Take.student_id = Student.student_id
 	and Student.student_id = @student_ID
 )
 GO
@@ -788,7 +924,11 @@ create function FN_StudentUpcoming_installment
 returns date
 as
 begin
-	return (select top 1 deadline from Installment where StudentID = @StudentID and paid = 0 order by deadline)
+	declare @installment_deadline date
+	declare @payment_id int
+	select @payment_id = payment_id from Payment where student_id = @StudentID
+	select @installment_deadline = min(deadline) from Installment where status = 'notPaid' and payment_id = @payment_id
+	return @installment_deadline
 end
 GO
 -- HH) View slots of certain course that is taught by a certain instructor
@@ -805,10 +945,10 @@ returns table
 as
 return
 (
-	select * from Slot, Instructor_Course, Instructor, Course
+	select S.slot_id, S.location, S.time, S.day, C.name, I.name from Slot S, Instructor I , Course C
 	where Slot.slot_id = Instructor_Course.slot_id
-	and Instructor_Course.instructor_id = Instructor.instructor_id
-	and Instructor_Course.course_id = Course.course_id
+	and Slot.instructor_id = Instructor.instructor_id
+	and Slot.course_id = Course.course_id
 	and Course.course_id = @CourseID
 	and Instructor.instructor_id = @InstructorID
 )
@@ -828,8 +968,16 @@ create proc Procedures_StudentRegisterFirstMakeup
 	@studentCurrent varchar(40)
 as
 begin
-	if exists (select * from Student where StudentID = @StudentID)
-		insert into Makeup_Exam values (@StudentID, @courseID, @studentCurrent, null, null, null, null)
+	declare @exam_id int
+	declare @current_sem_start_date date
+	select @current_sem_start_date = start_date from Semester where semester_code = @studentCurrent
+	select @exam_id = exam_id from MakeUp_Exam where course_id = @courseID and type = 'first' and date = (select min(start_date) from MakeUp_Exam
+	where start_date > @current_sem_start_date and course_id = @courseID and type = 'first');
+	if (exists (select * from Student where StudentID = @StudentID))
+	begin
+		insert into Exam_student (exam_id, student_id, course_id)
+		values (@exam_id,@StudentID, @courseID)
+	end
 end
 
 
