@@ -237,22 +237,27 @@ GO
 --2.2
 
 -- A) Fetch details for all Active students.
+GO
 CREATE VIEW view_Students AS
 SELECT *
 FROM Student
 WHERE financial_status = 1;
+GO
 
 
 -- B) Fetch details for all courses with their prerequisites
+GO
 CREATE VIEW view_Course_prerequisites AS
 SELECT
     C.*,
     P.prequisite_Course_id AS prerequisite_course_id
 FROM Course C
 LEFT JOIN preqCourse_course P ON C.course_id = P.course_id;
+GO
 
 
 -- C) Fetch details for all Instructors along with their assigned courses
+GO
 CREATE VIEW Instructors_AssignedCourses AS
 SELECT
     I.*,
@@ -261,9 +266,11 @@ SELECT
 FROM Instructor I
 LEFT JOIN Instructor_Course IC ON I.instructor_id = IC.instructor_id
 LEFT JOIN Course C ON IC.course_id = C.course_id;
+GO
 
 
 -- D) Fetch details for all payments along with their corresponding student
+GO
 CREATE VIEW Student_Payment AS
 SELECT
     P.*,
@@ -272,6 +279,7 @@ FROM Payment P
 LEFT JOIN Student S ON P.student_id = S.student_id;
 
 -- E) Fetch details for all courses along with their corresponding slots’ details and instructors
+GO
 CREATE VIEW Courses_Slots_Instructor AS
 SELECT
     C.course_id,
@@ -285,6 +293,7 @@ FROM Course C
 LEFT JOIN Slot S ON C.course_id = S.course_id
 LEFT JOIN Instructor_Course IC ON C.course_id = IC.course_id
 LEFT JOIN Instructor I ON IC.instructor_id = I.instructor_id;
+GO
 
 -- F) Fetch details for all courses along with their exams’ details.
 CREATE VIEW Courses_MakeupExams AS
@@ -296,6 +305,7 @@ FROM Course C
 LEFT JOIN MakeUpExam M ON C.course_id = M.course_id;
 
 -- G) Fetch students along with their taken courses’ details
+GO
 CREATE VIEW Students_Courses_transcript AS
 SELECT
     S.student_id,
@@ -310,8 +320,10 @@ FROM Student S
 LEFT JOIN Student_Instructor_Course_Take E ON S.student_id = E.student_id
 LEFT JOIN Course C ON E.course_id = C.course_id
 LEFT JOIN Instructor I ON E.instructor_id = I.instructor_id;
+GO
 
 -- H) Fetch all semesters along with their offered courses
+GO
 CREATE VIEW Semster_offered_Courses AS
 SELECT
     S.semester_code,
@@ -320,8 +332,10 @@ SELECT
 FROM Semester S
 LEFT JOIN Course_Semester CS ON S.semester_code = CS.semester_code
 LEFT JOIN Course C ON CS.course_id = C.course_id;
+GO
 
 -- I) Fetch all graduation plans along with their initiated advisors
+GO
 CREATE VIEW Advisors_Graduation_Plan AS
 SELECT
     G.*,
@@ -329,6 +343,7 @@ SELECT
     A.name AS advisor_name
 FROM Graduation_Plan G
 LEFT JOIN Advisor A ON G.advisor_id = A.advisor_id;
+GO
 
 --- ~~~~~~~~~~ ---
 -- ~~~~ 2.3 ~~~ --
@@ -542,6 +557,7 @@ return
 -- iii. Input: RequestID int, Current semester code varchar (40)
 -- iv. Output: nothing
 
+GO
 create procedure Procedures_AdvisorApproveRejectCHRequest
 	@request_id int,
 	@current_semester_code varchar(40)
@@ -681,6 +697,7 @@ end
 -- iii. Input: StudentID int, mobile_number varchar (40)
 -- iv. Output: Nothing
 
+GO
 create proc Procedures_StudentaddMobile
 	@StudentID int,
 	@mobile_number varchar(40)
@@ -696,6 +713,7 @@ end
 -- iii. Input: semster_code varchar (40)
 -- iv. Output: Table of available courses within the semester
 
+GO
 create function FN_SemsterAvailableCourses
 	(@semster_code varchar(40))
 returns table
@@ -704,6 +722,7 @@ return
 (
 	select * from Course_Semester where semster_code = @semster_code
 )
+GO
 
 -- DD) Sending course’s request
 -- i. Type: Stored Procedure
@@ -730,6 +749,7 @@ end
 -- and comment varchar (40)
 -- iv. Output: Nothing
 
+GO
 create proc Procedures_StudentSendingCHRequest
 	@StudentID int,
 	@credit_hours int,
@@ -740,6 +760,7 @@ begin
 	if exists (select * from Student where StudentID = @StudentID)
 		insert into Request values (@type, @comment, 'pending', null, @StudentID, @credit_hours, null)
 end
+GO
 
 -- FF) View graduation plan along with the assigned courses
 -- i. Type: TVFunction
@@ -749,6 +770,7 @@ end
 -- Id, Course id, Course name, Semester code, expected
 -- graduation date, Semester credit hours, advisor id)
 
+GO
 create function FN_StudentViewGP
 	(@student_ID int)
 returns table
@@ -762,13 +784,13 @@ return
 	and GradPlan_Course.semster_code = Course_Semester.semster_code
 	and Student.student_id = @student_ID
 )
-
+GO
 -- GG) Student view his first not paid installment deadline
 -- i. Type: Scalar Function
 -- ii. Name: FN_StudentUpcoming_installment
 -- iii. Input: StudentID int
 -- iv. Output: deadline date of first not paid installment
-
+GO
 create function FN_StudentUpcoming_installment
 	(@StudentID int)
 returns date
@@ -776,7 +798,7 @@ as
 begin
 	return (select top 1 deadline from Installment where StudentID = @StudentID and paid = 0 order by deadline)
 end
-
+GO
 -- HH) View slots of certain course that is taught by a certain instructor
 -- i. Type: TVFunction
 -- ii. Name: FN_StudentViewSlot
@@ -784,6 +806,7 @@ end
 -- iv. Output: table of slots’ details (Slot ID, location, time, day)
 -- with course name and Instructor name
 
+GO
 create function FN_StudentViewSlot
 	(@CourseID int, @InstructorID int)
 returns table
@@ -797,6 +820,7 @@ return
 	and Course.course_id = @CourseID
 	and Instructor.instructor_id = @InstructorID
 )
+GO
 
 -- II) Register for first makeup exam {refer to eligibility section (2.4.1) in
 -- Milestone 1}
@@ -824,6 +848,7 @@ end
 -- iii. Input: CourseID int, Student ID int
 -- iv. Output: Eligible bit {0 → not eligible, 1 → eligible}
 
+GO
 create function FN_StudentCheckSMEligiability
 	(@CourseID int, @StudentID int)
 returns bit
@@ -831,6 +856,7 @@ as
 begin
 	return (select count(*) from Makeup_Exam where StudentID = @StudentID and course_id = @CourseID and makeup_type = 'second' and status = 'pending')
 end
+GO
 
 -- KK) Register for 2nd makeup exam {refer to eligibility section (2.4.1) in the
 -- description}
@@ -839,7 +865,7 @@ end
 -- iii. Input: StudentID int, courseID int, Student Current
 -- Semester Varchar (40)
 -- iv. Output: Nothing
-
+GO
 create proc Procedures_StudentRegisterSecondMakeup
 	@StudentID int,
 	@courseID int,
@@ -849,6 +875,7 @@ begin
 	if exists (select * from Student where StudentID = @StudentID)
 		insert into Makeup_Exam values (@StudentID, @courseID, @studentCurrent, null, null, null, null)
 end
+GO
 
 -- LL) View required courses
 -- i. Type: Stored Procedure
@@ -856,6 +883,7 @@ end
 -- iii. Input: StudentID int, Current semester code Varchar (40)
 -- iv. Output: Table of the required courses’ details.
 
+GO
 create proc Procedures_ViewRequiredCourses
 	@StudentID int,
 	@CurrentSemester varchar(40)
@@ -877,6 +905,7 @@ end
 -- iii. Input: StudentID int, Current semester code Varchar (40)
 -- iv. Output: Table of the optional courses’ details.
 
+GO
 create proc Procedures_ViewOptionalCourse
 	@StudentID int,
 	@CurrentSemester varchar(40)
@@ -891,6 +920,7 @@ begin
 	and Course_Semester.semster_code = @CurrentSemester
 	and Course_Semester.type = 'optional'
 end
+GO
 
 -- NN) View missing/remaining courses to specific student.
 -- i. Type: Stored Procedure
@@ -898,6 +928,7 @@ end
 -- iii. Input: StudentID int
 -- iv. Output: Table of missing courses’ details
 
+GO
 create proc Procedures_ViewMS
 	@StudentID int
 as
@@ -917,6 +948,7 @@ begin
 	and Student.student_id = @StudentID
 	and Course_Semester.type = 'taken')
 end
+GO
 
 -- OO) Choose instructor for a certain selected course.
 -- i. Type: Stored Procedure
@@ -925,6 +957,7 @@ end
 -- current_semester_code varchar(40)
 -- iv. Output: nothing
 
+GO
 create proc Procedures_ChooseInstructor
 	@StudentID int,
 	@InstructorID int,
@@ -935,3 +968,4 @@ begin
 	if exists (select * from Student where StudentID = @StudentID)
 		insert into Instructor_Course values (@InstructorID, @CourseID, @CurrentSemester)
 end
+GO
