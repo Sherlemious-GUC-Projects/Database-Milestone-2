@@ -994,8 +994,22 @@ create function FN_StudentCheckSMEligiability
 returns bit
 as
 begin
-	return (select count(*) from Makeup_Exam where StudentID = @StudentID and course_id = @CourseID and makeup_type = 'second' and status = 'pending')
-end
+	declare @succes bit
+	if 
+		exists(select s.* from Student_Instructor_Course_Take s Where @StudentID = s.student_id and @CourseID = s.course_id and s.grade not like 'F%') 
+		set @succes = 0
+	else
+		begin
+		if 
+			exists(Select s.* from Student_Instructor_Course_Take s Where @StudentID = s.student_id and @CourseID = s.course_id and s.exam_type is not null)
+			set @succes = 0
+		else
+			begin
+			set @succes = 1
+			end
+		end
+return @succes	
+end	
 GO
 
 -- KK) Register for 2nd makeup exam {refer to eligibility section (2.4.1) in the
@@ -1005,17 +1019,26 @@ GO
 -- iii. Input: StudentID int, courseID int, Student Current
 -- Semester Varchar (40)
 -- iv. Output: Nothing
-GO
 create proc Procedures_StudentRegisterSecondMakeup
 	@StudentID int,
 	@courseID int,
 	@studentCurrent varchar(40)
 as
 begin
-	if exists (select * from Student where StudentID = @StudentID)
-		insert into Makeup_Exam values (@StudentID, @courseID, @studentCurrent, null, null, null, null)
+if(FN_StudentCheckSMEligiability (@courseID, @StudentID) = 1)
+	begin
+	declare @exam_id int
+	declare @current_sem_start_date date
+	select @current_sem_start_date = start_date from Semester where semester_code = @studentCurrent
+	select @exam_id = exam_id from MakeUp_Exam where course_id = @courseID and type = 'second' and date = (select min(start_date) from MakeUp_Exam
+	where start_date > @current_sem_start_date and course_id = @courseID and type = 'second');
+	if (exists (select * from Student where StudentID = @StudentID))
+	begin
+		insert into Exam_student (exam_id, student_id, course_id)
+		values (@exam_id,@StudentID, @courseID)
+	end
+	end
 end
-GO
 
 -- LL) View required courses
 -- i. Type: Stored Procedure
