@@ -4,6 +4,7 @@
 
 --2.1.1 create database
 create database Advising_Team_127;
+create database test1;
 Go
 use Advising_Team_127;
 Go
@@ -12,7 +13,7 @@ Go
 create proc CreateAllTables
 as
 create table Advisor(
-	advisor_id int identity(0,1) primary key,
+	advisor_id int identity(1,1) primary key,
 	name varchar(40),
 	email varchar(40),
 	office varchar(40),
@@ -20,7 +21,7 @@ create table Advisor(
 );
 create table Student
 (
-	student_id int primary key identity(0,1),
+	student_id int primary key identity(1,1),
 	f_name varchar(40),
 	l_name varchar(40),
 	gpa decimal(3,2),
@@ -42,7 +43,7 @@ create table Student_Phone(
 	foreign key(student_id) references Student(student_id),
 );	
 create table Course(
-	course_id int primary key identity(0,1),
+	course_id int primary key identity(1,1),
 	name varchar(40),
 	major varchar(40),
 	is_offered bit,
@@ -58,7 +59,7 @@ create table preqCourse_course(
 );
 create table Instructor
 (
-	instructor_id int primary key identity(0,1),
+	instructor_id int primary key identity(1,1),
 	name varchar(40),
 	email varchar(40),
 	faculty varchar(40),
@@ -96,7 +97,7 @@ create table Course_Semester(
 	foreign key(semester_code) references Semester(semester_code),
 );
 create table Slot(
-	slot_id int primary key identity(0,1),
+	slot_id int primary key identity(1,1),
 	day varchar(40),
 	time varchar(40),
 	location varchar(40),
@@ -106,7 +107,7 @@ create table Slot(
 	foreign key(course_id) references Course(course_id)
 );
 create table Graduation_Plan(
-	plan_id int identity(0,1),
+	plan_id int identity(1,1),
 	semester_code varchar(40),
 	semester_credit_hours int,
 	expected_grad_date date,
@@ -121,10 +122,10 @@ create table GradPlan_Course(
 	semester_code varchar(40),
 	course_id int,
 	primary key(plan_id, course_id, semester_code),
-	foreign key(semester_code) references Semester(semester_code)
+	foreign key(plan_id ,semester_code) references Graduation_plan(plan_id ,semester_code)
 );
 create table Request(
-	request_id int primary key identity(0,1),
+	request_id int primary key identity(1,1),
 	type varchar(40),
 	comment varchar(40),
 	status varchar(40) default 'pending',
@@ -136,10 +137,10 @@ create table Request(
 	foreign key(advisor_id) references Advisor(advisor_id),
 	foreign key(course_id) references Course(course_id)
 );
-create table MakeUpExam(
-    exam_id int primary key identity(0,1),
+create table MakeUp_Exam(
+    exam_id int primary key identity(1,1),
     date datetime,
-	type varchar(40),
+	type varchar(40) ,
 	course_id int,
 	foreign key(course_id) references Course(course_id)
 );
@@ -148,11 +149,11 @@ create table Exam_student(
 	student_id int,
 	course_id int,
 	primary key(exam_id, student_id),
-	foreign key(exam_id) references MakeUpExam(exam_id),
+	foreign key(exam_id) references MakeUp_Exam(exam_id),
 	foreign key(student_id) references Student(student_id)
 );
 create table Payment(
-	payment_id int primary key identity(0,1),
+	payment_id int primary key identity(1,1),
 	amount int,
 	deadline datetime,
 	n_installments int,
@@ -190,7 +191,7 @@ drop table if Exists Slot;
 drop table if Exists Graduation_Plan;
 drop table if Exists Request;
 drop table if Exists Payment;
-drop table if Exists MakeUpExam;
+drop table if Exists MakeUp_Exam;
 drop table if Exists Student;
 drop table if Exists Course;
 drop table if Exists Instructor;
@@ -212,23 +213,13 @@ delete from Installment;
 delete from Slot;
 delete from Graduation_Plan;
 delete from Request;
-delete from MakeUpExam;
+delete from Payment;
+delete from MakeUp_Exam;
 delete from Student;
 delete from Course;
 delete from Instructor;
 delete from Semester;
 delete from Advisor;
-delete from Payment;
-GO
-
-Exec CreateAllTables;
-GO
-
-Exec clearAllTables;
-GO
-
-Exec DropAllTables;
-GO
 
 
 --- ~~~~~~~~~~ ---
@@ -274,7 +265,14 @@ GO
 GO
 CREATE VIEW Student_Payment AS
 SELECT
-    P.*,
+    P.amount,
+	P.deadline,
+	P.n_installments,
+	P.status,
+	P.fund_percentage,
+	P.start_date,
+	P.semester_code,
+	p.payment_id,
     S.*
 FROM Payment P
 LEFT JOIN Student S ON P.student_id = S.student_id;
@@ -303,7 +301,7 @@ SELECT
     C.semester AS course_semester,
     M.*
 FROM Course C
-LEFT JOIN MakeUpExam M ON C.course_id = M.course_id;
+LEFT JOIN MakeUp_Exam M ON C.course_id = M.course_id;
 
 -- G) Fetch students along with their taken courses’ details
 GO
@@ -327,9 +325,9 @@ GO
 GO
 CREATE VIEW Semster_offered_Courses AS
 SELECT
-    S.semester_code,
     C.course_id,
-    C.name AS course_name
+    C.name AS course_name,
+	S.semester_code
 FROM Semester S
 LEFT JOIN Course_Semester CS ON S.semester_code = CS.semester_code
 LEFT JOIN Course C ON CS.course_id = C.course_id;
@@ -340,7 +338,6 @@ GO
 CREATE VIEW Advisors_Graduation_Plan AS
 SELECT
     G.*,
-    A.advisor_id,
     A.name AS advisor_name
 FROM Graduation_Plan G
 LEFT JOIN Advisor A ON G.advisor_id = A.advisor_id;
@@ -362,13 +359,14 @@ Create Procedure Procedures_StudentRegistration
 	@semester int,
 	@student_id int Output
 As
-	Insert Into Student(f_name, l_name, password, faculty, email, semester)
+	Insert Into Student(f_name, l_name, password, faculty, email, major, semester)
 		Values(@first_name, @last_name, @password, @faculty, @email, @major, @semester)
-GO;
+		Select @student_id = student_id from Student where email = @email and password = @password
+GO
 
 -- B)
 
-Create Procedure Procedures_AdminListStudents
+Create Procedure Procedures_AdminRegistration
 @advisor_name varchar(40),
 @password varchar(40),
 @email varchar(40),
@@ -377,41 +375,41 @@ Create Procedure Procedures_AdminListStudents
 As
 Insert Into Advisor(name, email, office, password)
 Values(@advisor_name, @email, @office, @password)
-GO;
+select @advisor_id = advisor_id from Advisor where name = @advisor_name and password = @password
+GO
 
 -- C)
 
 Create Procedure Procedures_AdminListStudents
 As
 Select s.* From Student s
-Inner Join Advisor a On s.advisor_id = a.advisor_id
-GO;
+GO
 
 -- D)
 
 Create Procedure Procedures_AdminListAdvisors
 As
 Select * From Advisor
-GO;
+GO
 
 -- E)
 
 Create Procedure AdminListStudentsWithAdvisors
 As
-Select s.*, a.name From Student s
+Select s.*, a.name as advisor_name From Student s
 Inner Join Advisor a On s.advisor_id = a.advisor_id
-GO; --msh mota2ked menha
+GO --msh mota2ked menha
 
 -- F)
 
 Create Procedure AdminAddingSemester
 		@start_date date,
 		@end_date date,
-		@semester_code int
+		@semester_code varchar(40)
 As
 	Insert Into Semester(semester_code, start_date, end_date)
 		Values(@semester_code, @start_date, @end_date)
-GO;
+GO
 
 -- G)
 
@@ -424,7 +422,7 @@ Create Procedure Procedures_AdminAddingCourse
 As
 	Insert Into Course(name, major, is_offered, credit_hours, semester)
 		Values(@course_name, @major, @offered, @credit_hours, @semester)
-GO;
+GO
 
 -- H)
 
@@ -433,12 +431,10 @@ Create Procedure Procedures_AdminLinkInstructor
 	@CourseID int,
 	@slotID int
 As
-	Update Slot
-	Set 
-		Slot.instructor_id = @InstructorID,
-		Slot.course_id = @CourseID
-		Where Slot.slot_id = @slotID
-GO;
+	insert into Slot(slot_id, instructor_id, course_id)
+		values(@slotID, @InstructorID, @CourseID)
+				
+GO
 
 -- I)
 
@@ -448,13 +444,9 @@ Create Procedure Procedures_AdminLinkStudent
 	@course_ID int,
 	@semester_code varchar(40)
 As 
-	Update Student_Instructor_Course_Take
-	Set 
-	Student_Instructor_Course_Take.student_id = @student_ID,
-	Student_Instructor_Course_Take.course_id = @course_ID,
-	Student_Instructor_Course_Take.semester_code = @semester_code
-	Where Student_Instructor_Course_Take.instructor_id = @Instructor_ID
-GO;
+	insert into Student_Instructor_Course_Take(instructor_id, student_id, course_id, semester_code)
+		values(@Instructor_ID, @student_ID, @course_ID, @semester_code)
+GO
 
 -- J)
 
@@ -464,9 +456,9 @@ Create Procedure Procedures_AdminLinkStudentToAdvisor
 As
 	Update Student
 	Set
-	Student.student_id = @studentID,
 	Student.advisor_id = @advisorID
-GO;
+	where Student.student_id = @studentID
+GO
 
 -- K)
 
@@ -475,10 +467,10 @@ Create Procedure Procedures_AdminAddExam
 	@date datetime,
 	@courseID int
 As
-	Insert Into MakeUpExam(type, date, course_id)
+	Insert Into MakeUp_Exam(type, date, course_id)
 	Values(@TYPE, @date, @courseID)
-GO;
-
+GO
+-- l)
 -- O)
 
 Create Procedure all_Pending_Requests
