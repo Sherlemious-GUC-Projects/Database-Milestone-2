@@ -224,11 +224,12 @@ GO
 Exec CreateAllTables;
 GO
 
+Exec clearAllTables;
+GO
+
 Exec DropAllTables;
 GO
 
-Exec clearAllTables;
-GO
 
 --- ~~~~~~~~~~ ---
 -- ~~~~ 2.2 ~~~ --
