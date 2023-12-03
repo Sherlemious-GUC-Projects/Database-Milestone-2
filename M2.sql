@@ -1105,7 +1105,12 @@ create proc Procedures_ChooseInstructor
 	@CurrentSemester varchar(40)
 as
 begin
-	if exists (select * from Student where StudentID = @StudentID)
-		insert into Instructor_Course values (@InstructorID, @CourseID, @CurrentSemester)
+	if (
+		exists (select * from Student where student_id = @StudentID)
+		and
+		exists (select * from Course C INNER JOIN Course_Semester CS ON C.course_id = CS.course_id
+			where C.course_id = @CourseID and semester_code = @CurrentSemester)
+	)
+		insert into Instructor_Course values (@InstructorID, @CourseID)
 end
 GO
